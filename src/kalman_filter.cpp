@@ -44,16 +44,18 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
     float pn = (x_(0) * x_(2) + x_(1) * x_(3)) / p;
     float theta = atan2(x_(1), x_(0));
 
-		VectorXd z_pred = VectorXd(3);    
+		VectorXd z_pred = VectorXd(3);
     z_pred << p, theta, pn;
 
     VectorXd y = z - z_pred;
-    float th = y(1);
-    while (th > M_PI)
-        th -= 2 * M_PI;
-    while (th < -M_PI)
-        th += 2 * M_PI;
-    y(1) = th;
+
+		//correct angle so between -pi and +pi
+    float angle = y(1);
+    while (angle > M_PI)
+        angle -= 2 * M_PI;
+    while (angle < -M_PI)
+        angle += 2 * M_PI;
+    y(1) = angle;
 
     MatrixXd Ht = H_.transpose();
     MatrixXd S = H_ * P_ * Ht + R_;
