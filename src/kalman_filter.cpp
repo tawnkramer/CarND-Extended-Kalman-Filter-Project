@@ -3,9 +3,6 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-// Please note that the Eigen library does not initialize 
-// VectorXd or MatrixXd objects with zeros upon creation.
-
 KalmanFilter::KalmanFilter() {}
 
 KalmanFilter::~KalmanFilter() {}
@@ -43,6 +40,30 @@ void KalmanFilter::Update(const VectorXd &z) {
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
-  //todo. temp
-  Update(z);
+    float p = sqrt(pow(x_(0), 2) + pow(x_(1), 2));
+    float pn = (x_(0) * x_(2) + x_(1) * x_(3)) / p;
+    float theta = atan2(x_(1), x_(0));
+
+		VectorXd z_pred = VectorXd(3);    
+    z_pred << p, theta, pn;
+
+    VectorXd y = z - z_pred;
+    float th = y(1);
+    while (th > M_PI)
+        th -= 2 * M_PI;
+    while (th < -M_PI)
+        th += 2 * M_PI;
+    y(1) = th;
+
+    MatrixXd Ht = H_.transpose();
+    MatrixXd S = H_ * P_ * Ht + R_;
+    MatrixXd Si = S.inverse();
+    MatrixXd PHt = P_ * Ht;
+    MatrixXd K = PHt * Si;
+
+    //new estimate
+    x_ = x_ + (K * y);
+    long x_size = x_.rows();
+    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    P_ = (I - K * H_) * P_;
 }

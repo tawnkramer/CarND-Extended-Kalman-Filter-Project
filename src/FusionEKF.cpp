@@ -31,29 +31,29 @@ FusionEKF::FusionEKF() {
               0, 0.0009, 0,
               0, 0, 0.09;
 
+  //laser measurment matrix
+  H_laser_ << 1, 0, 0, 0,
+            0, 1, 0, 0;
+
   //create a 4D state vector, we don't know yet the values of the x state
-	VectorXd x = VectorXd(4);
+	ekf_.x_ = VectorXd(4);
 
   //state covariance matrix P
-	MatrixXd P = MatrixXd(4, 4);
-	P <<  1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1000, 0,
-        0, 0, 0, 1000;
+	ekf_.P_ = MatrixXd(4, 4);
+	ekf_.P_ <<  1, 0, 0, 0,
+              0, 1, 0, 0,
+              0, 0, 1000, 0,
+              0, 0, 0, 1000;
 
   //the initial transition matrix F_
-	MatrixXd F = MatrixXd(4, 4);
-	F <<  1, 0, 1, 0,
-        0, 1, 0, 1,
-        0, 0, 1, 0,
-        0, 0, 0, 1;
-
+	ekf_.F_ = MatrixXd(4, 4);
+	ekf_.F_ <<  1, 0, 1, 0,
+              0, 1, 0, 1,
+              0, 0, 1, 0,
+              0, 0, 0, 1;
 
   //set the process covariance matrix Q
-	MatrixXd Q = MatrixXd(4, 4);
-
-  //Finish initializing the FusionEKF.
-  ekf_.Init(x, P, F, H_laser_, R_laser_, Q);
+	ekf_.Q_ = MatrixXd(4, 4);
 
 }
 
@@ -140,18 +140,22 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    */
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+    
     // Radar updates
     Hj_ = tools.CalculateJacobian(ekf_.x_);
 
     if(!Hj_.isZero())
     {
-      ekf_.Init(ekf_.x_ , ekf_.P_ , ekf_.F_ , Hj_, R_radar_, ekf_.Q_ );
+      ekf_.H_ = Hj_;
+      ekf_.R_ = R_radar_;
       ekf_.UpdateEKF(measurement_pack.raw_measurements_);
     }
+    
 
   } else {
     // Laser updates
-    ekf_.Init(ekf_.x_ , ekf_.P_ , ekf_.F_ , H_laser_, R_laser_, ekf_.Q_ );
+    ekf_.R_ = R_laser_;
+    ekf_.H_ = H_laser_;
     ekf_.Update(measurement_pack.raw_measurements_);
   }
 
